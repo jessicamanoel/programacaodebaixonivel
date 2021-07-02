@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <stdbool.h>
+#include <limits.h>
 #include <string.h> // Para usar strings
 
 #ifdef WIN32
@@ -102,23 +105,11 @@ void seamcarve(int targetWidth)
     
     montaMatrizGradiente(matrizGradientes, ptr);
 
-    for (int i = 0; i < target->height; i++)
+    for (int i = 0; i < target->width - targetWidth; i++)
     {
-        for(int j =0; j <target->width; j++)
-        {
-            printf("Valor gradiente: %d \n", matrizGradientes[i][j]);
-        }
+        caminhoSeam(matrizGradientes, ptr, targetWidth);
     }
 
-    int teste;
-
-    for (int y = 0; y < target->height; y++)
-    {
-        for (int x = 0; x < targetW; x++)
-            ptr[y][x].r = ptr[y][x].g = 255;
-        for (int x = targetW; x < target->width; x++)
-            ptr[y][x].r = ptr[y][x].g = 0;
-    }
     // Chame uploadTexture a cada vez que mudar
     // a imagem (pic[2])
     uploadTexture();
@@ -268,6 +259,113 @@ int retornaMenorNumero(int primeiroNumero, int segundoNumero, int terceiroNumero
         return segundoNumero;
     }
     return terceiroNumero;
+}
+
+void caminhoSeam(int matrizGradiente[target->height][target->width], RGB8 ptr[target->height][target->width], int targetWidth)
+{
+
+    int posicao = posicaoPixelMenorValorAcumulado(matrizGradiente, targetWidth);
+    removePixelPorPosicao(matrizGradiente, ptr, posicao);
+    removeGradientePorPosicao(matrizGradiente, posicao);
+}
+
+int posicaoPixelMenorValorAcumulado(int matrizGradiente[target->height][target->width], int targetWidth)
+{
+    int posicao = 0;
+    int menorValor = INT_MAX;
+    for (int i = 0; i < targetWidth; i++)
+    {
+        if (matrizGradiente[target->height - 1][i] < menorValor)
+        {
+            menorValor = matrizGradiente[target->height - 1][i];
+            posicao = i;
+        }
+    }
+
+    return posicao;
+}
+
+void removePixelPorPosicao(int matrizGradiente[target->height][target->width], RGB8 ptr[target->height][target->width], int posicao)
+{
+    for (int linha = source->height - 1; linha >= 0; linha--)
+    {
+        //printf("Caminho seam: Linha %d Coluna %d Valor %d \n", linha, posicao, matrizGradiente[linha][posicao]);
+        puxaPixel(linha, posicao, ptr);
+        //puxaPixel(linha, posicao, ptr2);
+        posicao = valorPosicaoPixelAnterior(linha, posicao, matrizGradiente);
+    }
+}
+
+void removeGradientePorPosicao(int matrizGradiente[target->height][target->width], int posicao)
+{
+    for (int linha = source->height - 1; linha >= 0; linha--)
+    {
+        //printf("Caminho seam: Linha %d Coluna %d Valor %d \n", linha, posicao, matrizGradiente[linha][posicao]);
+        puxaGradiente(linha, posicao, matrizGradiente);
+        //puxaPixel(linha, posicao, ptr2);
+        posicao = valorPosicaoPixelAnterior(linha, posicao, matrizGradiente);
+    }
+}
+
+int valorPosicaoPixelAnterior(int linha, int coluna, int matrizGradiente[target->height][target->width])
+{
+    int posicao = 0;
+    // Verifica se está na coluna mais a esquerda
+    if (coluna == 0)
+    {
+        if (matrizGradiente[linha - 1][coluna] < matrizGradiente[linha - 1][coluna + 1])
+        {
+            posicao = coluna;
+        }
+        posicao = coluna + 1;
+    }
+
+    //verifica se está na coluna mais a direita
+    else if (coluna == source->width)
+    {
+        if (matrizGradiente[linha - 1][coluna] < matrizGradiente[linha - 1][coluna - 1])
+        {
+            posicao = coluna;
+        }
+        posicao = coluna - 1;
+    }
+    else
+    {
+        posicao = retornaPosicaoMenorNumero(matrizGradiente[linha - 1][coluna - 1], matrizGradiente[linha - 1][coluna], matrizGradiente[linha - 1][coluna + 1], coluna);
+    }
+
+    return posicao;
+}
+
+int retornaPosicaoMenorNumero(int primeiroNumero, int segundoNumero, int terceiroNumero, int posicao)
+{
+    if (primeiroNumero < segundoNumero && primeiroNumero < terceiroNumero)
+    {
+        return posicao - 1;
+    }
+    else if (segundoNumero < primeiroNumero && segundoNumero < terceiroNumero)
+    {
+        return posicao;
+    }
+    return posicao + 1;
+}
+
+void puxaGradiente(int linha, int posicao, int matrizGradiente[target->height][target->width])
+{
+    for (int i = posicao; i < target->width; i++)
+    {
+        matrizGradiente[linha][i] = matrizGradiente[linha][i + 1];
+    }
+}
+
+void puxaPixel(int linha, int posicao, RGB8 ptr[target->height][target->width])
+{
+    for (int i = posicao; i < target->width; i++)
+    {
+        ptr[linha][i].r = ptr[linha][i + 1].r;
+        ptr[linha][i].g = ptr[linha][i + 1].g;
+        ptr[linha][i].b = ptr[linha][i + 1].b;
+    }
 }
 
 
