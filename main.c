@@ -87,14 +87,27 @@ void seamcarve(int targetWidth)
     RGB8(*ptr2)
     [source->width] = (RGB8(*)[source->width])source->img;
 
-    for (int i = 0; i < source->height; i++)
+    int matrizGradientes[target->height][target->width];
+
+    //Cria saída para imagem
+    for (int i = 0; i < target->height; i++)
     {
-        for (int j = 0; j < source->width; j++)
+        for (int j = 0; j < target->width; j++)
         {
-            printf("Teste Calculo gradiente: %d \n", calculaGradiente(ptr2[i][j],ptr2[i][j],ptr2[i][j],ptr2[i][j]));
-            
+            ptr[i][j].r = ptr2[i][j].r;
+            ptr[i][j].g = ptr2[i][j].g;
+            ptr[i][j].b = ptr2[i][j].b;
         }
-        
+    }
+    
+    montaMatrizGradiente(matrizGradientes, ptr);
+
+    for (int i = 0; i < target->height; i++)
+    {
+        for(int j =0; j <target->width; j++)
+        {
+            printf("Valor gradiente: %d \n", matrizGradientes[i][j]);
+        }
     }
     
 
@@ -123,6 +136,141 @@ int calculaGradiente(RGB8 pixelLeft, RGB8 pixelRight, RGB8 pixelUp, RGB8 pixelDo
 
     return ((pow(redGradX, 2) + pow(greenGradX, 2) + pow(blueGradX, 2)) + (pow(redGradY, 2) + pow(greenGradY, 2) + pow(blueGradY, 2)));
 }
+
+void montaMatrizGradiente(int matrizGradiente[source->height][source->width], RGB8 pic2[target->height][target->width])
+{
+    for (int linha = 0; linha < source->height; linha++)
+    {
+        for (int coluna = 0; coluna < source->width; coluna++)
+        {
+                if (linha == 0)
+                {
+                    if (verificaCantoSuperiorEsquerdo(linha, coluna))
+                    {
+                        matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][source->width - 1], pic2[linha][coluna + 1], pic2[source->height - 1][coluna], pic2[linha + 1][coluna]);
+                    }
+                    else if (verificaCantoSuperiorDireito(linha, coluna))
+                    {
+                        matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna], pic2[0][0], pic2[source->height - 1][source->width - 1], pic2[linha + 1][coluna]);
+                    }
+                    else
+                    {
+                        matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna - 1], pic2[linha][coluna + 1], pic2[source->height - 1][coluna], pic2[linha + 1][coluna]);
+                    }
+                }
+                //Verifica se é o pixel do canto inferior direito
+                else if (verificaCantoInferiorDireito(linha, coluna))
+                {
+                    //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
+                    matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna - 1], pic2[linha][0], pic2[linha - 1][coluna], pic2[0][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
+                }
+                //Verifica se é o pixel do canto inferior esquerdo
+                else if (verificaCantoInferiorEsquerdo(linha, coluna))
+                {
+                    //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
+                    matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][source->width - 1], pic2[linha][coluna + 1], pic2[source->height - 1][coluna], pic2[linha + 1][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
+                }
+                else if (coluna == 0)
+                {
+                    //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
+                    matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][source->width - 1], pic2[linha][coluna + 1], pic2[linha - 1][coluna], pic2[linha + 1][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
+                }
+                else if (coluna == source->width)
+                {
+                    //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
+                    matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna - 1], pic2[linha][0], pic2[linha - 1][coluna], pic2[linha + 1][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
+                }
+                else
+                {
+                    //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
+                    matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna - 1], pic2[linha][coluna + 1], pic2[linha - 1][coluna], pic2[linha + 1][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
+                }
+            
+        }
+    }
+}
+
+int verificaCantoSuperiorEsquerdo(int linha, int coluna)
+{
+    if (linha == 0 && coluna == 0)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int verificaCantoInferiorEsquerdo(int linha, int coluna)
+{
+    if (linha == source->height - 1 && coluna == 0)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int verificaCantoSuperiorDireito(int linha, int coluna)
+{
+    if (linha == 0 && coluna == source->width - 1)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int verificaCantoInferiorDireito(int linha, int coluna)
+{
+    if (linha == source->height - 1 && coluna == source->width - 1)
+    {
+        return 1;
+    }
+    return 0;
+}
+
+int valorGradientePixelAnterior(int linha, int coluna, int matrizGradiente[target->height][target->width])
+{
+    int valorPixel = 0;
+    // Verifica se está na coluna mais a esquerda
+    if (coluna == 0)
+    {
+        if (matrizGradiente[linha - 1][coluna] < matrizGradiente[linha - 1][coluna + 1])
+        {
+            valorPixel = matrizGradiente[linha - 1][coluna];
+        }
+        valorPixel = matrizGradiente[linha - 1][coluna + 1];
+    }
+
+    //verifica se está na coluna mais a direita
+    else if (coluna == source->width)
+    {
+        if (matrizGradiente[linha - 1][coluna] < matrizGradiente[linha - 1][coluna - 1])
+        {
+            valorPixel = matrizGradiente[linha - 1][coluna];
+        }
+        valorPixel = matrizGradiente[linha - 1][coluna - 1];
+    }
+    else
+    {
+        valorPixel = retornaMenorNumero(matrizGradiente[linha - 1][coluna - 1], matrizGradiente[linha - 1][coluna], matrizGradiente[linha - 1][coluna + 1]);
+    }
+
+    return valorPixel;
+}
+
+int retornaMenorNumero(int primeiroNumero, int segundoNumero, int terceiroNumero)
+{
+    if (primeiroNumero < segundoNumero && primeiroNumero < terceiroNumero)
+    {
+        return primeiroNumero;
+    }
+    else if (segundoNumero < primeiroNumero && segundoNumero < terceiroNumero)
+    {
+        return segundoNumero;
+    }
+    return terceiroNumero;
+}
+
+
+
 
 
 void freemem()
