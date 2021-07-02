@@ -84,6 +84,20 @@ void seamcarve(int targetWidth)
     RGB8(*ptr)
     [target->width] = (RGB8(*)[target->width])target->img;
 
+    RGB8(*ptr2)
+    [source->width] = (RGB8(*)[source->width])source->img;
+
+    for (int i = 0; i < source->height; i++)
+    {
+        for (int j = 0; j < source->width; j++)
+        {
+            printf("Teste Calculo gradiente: %d \n", calculaGradiente(ptr2[i][j],ptr2[i][j],ptr2[i][j],ptr2[i][j]));
+            
+        }
+        
+    }
+    
+
     for (int y = 0; y < target->height; y++)
     {
         for (int x = 0; x < targetW; x++)
@@ -96,6 +110,20 @@ void seamcarve(int targetWidth)
     uploadTexture();
     glutPostRedisplay();
 }
+
+int calculaGradiente(RGB8 pixelLeft, RGB8 pixelRight, RGB8 pixelUp, RGB8 pixelDown)
+{
+    int redGradX = pixelRight.r - pixelLeft.r;
+    int greenGradX = pixelRight.g - pixelLeft.g;
+    int blueGradX = pixelRight.b - pixelLeft.b;
+
+    int redGradY = pixelDown.r - pixelUp.r;
+    int greenGradY = pixelDown.g - pixelUp.g;
+    int blueGradY = pixelDown.b - pixelUp.b;
+
+    return ((pow(redGradX, 2) + pow(greenGradX, 2) + pow(blueGradX, 2)) + (pow(redGradY, 2) + pow(greenGradY, 2) + pow(blueGradY, 2)));
+}
+
 
 void freemem()
 {
