@@ -109,7 +109,8 @@ void seamcarve(int targetWidth)
             printf("Valor gradiente: %d \n", matrizGradientes[i][j]);
         }
     }
-    
+
+    int teste;
 
     for (int y = 0; y < target->height; y++)
     {
