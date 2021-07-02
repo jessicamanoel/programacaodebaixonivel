@@ -90,6 +90,9 @@ void seamcarve(int targetWidth)
     RGB8(*ptr2)
     [source->width] = (RGB8(*)[source->width])source->img;
 
+    RGB8(*pixelsMask)
+    [mask->width] = (RGB8(*)[mask->width])mask->img;
+
     int matrizGradientes[target->height][target->width];
 
     //Cria saída para imagem
@@ -102,16 +105,19 @@ void seamcarve(int targetWidth)
             ptr[i][j].b = ptr2[i][j].b;
         }
     }
-    
-    montaMatrizGradiente(matrizGradientes, ptr);
+
+    montaMatrizGradiente(matrizGradientes, ptr, pixelsMask);
 
     for (int i = 0; i < target->width - targetWidth; i++)
     {
         caminhoSeam(matrizGradientes, ptr, targetWidth);
     }
 
-    // Chame uploadTexture a cada vez que mudar
-    // a imagem (pic[2])
+    for (int i = targetWidth; i < target->width; i++)
+    {
+        pintaPixelPreto(i, ptr);
+    }
+
     uploadTexture();
     glutPostRedisplay();
 }
@@ -129,12 +135,22 @@ int calculaGradiente(RGB8 pixelLeft, RGB8 pixelRight, RGB8 pixelUp, RGB8 pixelDo
     return ((pow(redGradX, 2) + pow(greenGradX, 2) + pow(blueGradX, 2)) + (pow(redGradY, 2) + pow(greenGradY, 2) + pow(blueGradY, 2)));
 }
 
-void montaMatrizGradiente(int matrizGradiente[source->height][source->width], RGB8 pic2[target->height][target->width])
+void montaMatrizGradiente(int matrizGradiente[source->height][source->width], RGB8 pic2[target->height][target->width], RGB8 pic1[mask->height][mask->width])
 {
     for (int linha = 0; linha < source->height; linha++)
     {
         for (int coluna = 0; coluna < source->width; coluna++)
         {
+            if (verificaPixelVermelho(pic1[linha][coluna]))
+            {
+                matrizGradiente[linha][coluna] = -1000000;
+            }
+            else if (verificaPixelVerde(pic1[linha][coluna]))
+            {
+                matrizGradiente[linha][coluna] = 1000000;
+            }
+            else
+            {
                 if (linha == 0)
                 {
                     if (verificaCantoSuperiorEsquerdo(linha, coluna))
@@ -177,7 +193,7 @@ void montaMatrizGradiente(int matrizGradiente[source->height][source->width], RG
                     //Calcula valor do pixel e acumula com o valor do pixel de menor valor anterior
                     matrizGradiente[linha][coluna] = calculaGradiente(pic2[linha][coluna - 1], pic2[linha][coluna + 1], pic2[linha - 1][coluna], pic2[linha + 1][coluna]) + valorGradientePixelAnterior(linha, coluna, matrizGradiente);
                 }
-            
+            }
         }
     }
 }
@@ -368,9 +384,33 @@ void puxaPixel(int linha, int posicao, RGB8 ptr[target->height][target->width])
     }
 }
 
+void pintaPixelPreto(int coluna, RGB8 ptr[target->height][target->width])
+{
+    for (int linha = 0; linha < target->height; linha++)
+    {
+        ptr[linha][coluna].r = 0;
+        ptr[linha][coluna].g = 0;
+        ptr[linha][coluna].b = 0;
+    }
+}
 
+int verificaPixelVermelho(RGB8 pixelMask)
+{
+    if (pixelMask.r >= 230 && pixelMask.g <= 160 && pixelMask.b <= 160)
+    {
+        return 1;
+    }
+    return 0;
+}
 
-
+int verificaPixelVerde(RGB8 pixelMask)
+{
+    if (pixelMask.r <= 160 && pixelMask.g >= 230 && pixelMask.b <= 160)
+    {
+        return 1;
+    }
+    return 0;
+}
 
 void freemem()
 {
